@@ -1,0 +1,24 @@
+library(tidyverse)
+library(padr)
+library(readxl)
+
+#Abrir la tabla "Phase_One_Lifestyle.xlsx" a mano o directamente con lo de abajo:
+ó 
+Phase_One_Lifestyle <- read_excel("~/Phase_One_Lifestyle.xlsx", col_types = c("text", "text", "text", "text", "text", "text", "text", "text", "text", "text", "text", "text", "text", "text", "text", "text", "date"))
+############## Si se levantó desde SPSS correr lectura de variable DATE:as.Date( One_$ACCTIME)
+
+############## Cualquiera de ambos queries funcionan:base_mobil <- Phase_One_Lifestyle %>% count(SUBSCRIBER_ID) %>% arrange(desc(n)) %>% slice(1:30) %>% select(SUBSCRIBER_ID) %>% inner_join(Phase_One_Lifestyle)
+ó 
+base_mobil <- inner_join(select(slice(arrange(count(Phase_One_Lifestyle, SUBSCRIBER_ID), desc(n)), 1:30), SUBSCRIBER_ID), Phase_One_Lifestyle)##############
+ggplot(count(thicken(base_mobil, 'month', col = 'month'), SUBSCRIBER_ID, month), aes(month, n)) + geom_bar(aes(fill = SUBSCRIBER_ID), col = "black", stat = 'identity', position = "fill")
+
+##############hourly_distribution <- fill_by_value(pad(count(thicken(base_mobil, 'hour'), SUBSCRIBER_ID, ACCTIME_hour), group = 'SUBSCRIBER_ID'), n)
+ggplot(summarise(group_by(mutate(hourly_distribution, clock_hour = lubridate::hour(ACCTIME_hour)), clock_hour, SUBSCRIBER_ID), mn = mean(n)), aes(clock_hour, mn)) + geom_line() + facet_wrap(~SUBSCRIBER_ID, scales = 'free')
+
+##############first_day <- min(as.Date(base_mobil$ACCTIME))weekdays(first_day)
+ggplot(filter(group_by(thicken(base_mobil, 'week', start_val = first_day - 3), SUBSCRIBER_ID, ACCTIME_week), min_rank(ACCTIME) > 1) %>% mutate(weekday = weekdays(ACCTIME) %>% factor(levels = (c('lunes', 'martes', 'miércoles', 'jueves', 'viernes', 'sábado', 'domingo') %>% rev) )), aes(weekday)) +geom_bar(aes(fill = SUBSCRIBER_ID)) + coord_flip() + guides(fill = FALSE) + facet_wrap(~SUBSCRIBER_ID)
+
+#################### FRECUENCIA POR DIA con MA(n=30) (i.e. arrastra 1 mes de 30 días):base_mobil %>% thicken('day', col = 'day') %>%   count(day, SUBSCRIBER_ID) %>%   pad(group = 'SUBSCRIBER_ID') %>% fill_by_value(n) %>%   group_by(SUBSCRIBER_ID) %>%   mutate(moving_average = RcppRoll::roll_meanr(x = n, n = 30, fill = NA)) %>%   ggplot(aes(day, n)) +   geom_line() +  geom_line(aes(y = moving_average), col = 'red') +  facet_wrap(~SUBSCRIBER_ID, scales = 'free')
+###### FRECUENCIA POR SEMANA con MA(n=5) (i.e. arrastra 1 mes de 5 semanas):base_mobil %>% thicken('week', col = 'week') %>%   count(week, SUBSCRIBER_ID) %>%   pad(group = 'SUBSCRIBER_ID') %>% fill_by_value(n) %>%   group_by(SUBSCRIBER_ID) %>%   mutate(moving_average = RcppRoll::roll_meanr(x = n, n = 5, fill = NA)) %>%   ggplot(aes(week, n)) +   geom_line() +  geom_line(aes(y = moving_average), col = 'red') +  facet_wrap(~SUBSCRIBER_ID, scales = 'free')
+
+boxplot {as.formula(paste("DINNER_WEEKEND", "~", "EVENT_TYPE")),  data=modelerData,  xlab="TIPO", ylab="CENA_FINDE",  main="", horizontal=FALSE, col="blue"}
